@@ -69,6 +69,7 @@ class Facade:
             if note["Reference"].endswith(".a"):
                 note["Continued"] = "&gt;"
             note["Content"] = note["Content"].replace(" &gt;", "")
+            note["Chapter Transcript"] = f"Which Bible chapter?<br /><br />{note['Content']}"
             for k, v in note.items():
                 print(f"{k} -> {v}")
             print("---------------------")
