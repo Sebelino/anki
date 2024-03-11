@@ -64,14 +64,21 @@ class Facade:
         note_ids = self.col.find_notes("deck:Active::Theology_Temp")
         for note_id in note_ids:
             note = self.col.get_note(note_id)
-            note["Reference"] = note["Reference"].split("<br>")[0]
-            note["Content"] = note["Content"].split("<br>")[0]
+            new_note = dict()
+            new_note["Reference"] = note["Reference"].split("<br>")[0]
+            new_note["Content"] = note["Content"].split("<br>")[0]
             if note["Reference"].endswith(".a"):
-                note["Continued"] = "&gt;"
-            note["Content"] = note["Content"].replace(" &gt;", "")
-            note["Chapter Transcript"] = f"Which Bible chapter?<br /><br />{note['Content']}"
-            for k, v in note.items():
-                print(f"{k} -> {v}")
+                new_note["Continued"] = "&gt;"
+            new_note["Content"] = note["Content"].replace(" &gt;", "")
+            new_note["Chapter Transcript"] = f"Which Bible chapter?<br /><br />{note['Content']}"
+            for field in new_note:
+                if field not in note:
+                    raise Exception(f"Field '{field}' not in note {note['Reference']}")
+            print(f"Updating note {note['Reference']}")
+            for field in new_note:
+                if note[field] != new_note[field]:
+                    print(f"Setting {field}: {note[field]} -> {new_note[field]}")
+                    note[field] = new_note[field]
             print("---------------------")
             self.col.update_note(note)
 
