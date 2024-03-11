@@ -74,12 +74,13 @@ class Facade:
             for field in new_note:
                 if field not in note:
                     raise Exception(f"Field '{field}' not in note {note['Reference']}")
-            print(f"Updating note {note['Reference']}")
+            print(f"Updating note {note['Reference']}:")
             for field in new_note:
                 if note[field] != new_note[field]:
-                    print(f"Setting {field}: {note[field]} -> {new_note[field]}")
+                    print(f"  Setting {field}:")
+                    print(f"  - {note[field]}")
+                    print(f"  + {new_note[field]}")
                     note[field] = new_note[field]
-            print("---------------------")
             self.col.update_note(note)
 
 
