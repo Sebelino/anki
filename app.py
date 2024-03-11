@@ -69,8 +69,20 @@ class Facade:
             new_note["Content"] = note["Content"].split("<br>")[0]
             if note["Reference"].endswith(".a"):
                 new_note["Continued"] = "&gt;"
+                next_note_reference = f"{note['Reference'][:-2]}.b"
+                next_note_searchstring = f'"Reference:{next_note_reference}"'
+                next_note_ids = self.col.find_notes(next_note_searchstring)
+                if len(next_note_ids) == 1:
+                    next_note = self.col.get_note(next_note_ids[0])
+                    new_note["Next"] = next_note["Content"]
+                    new_note["Next Transcript"] = f"What's the next part?<br><br>{note['Content']}"
+                elif len(next_note_ids) == 0:
+                    pass
+                else:
+                    raise Exception(f"Found two notes with the same Reference: {note['Reference']}")
             new_note["Content"] = note["Content"].replace(" &gt;", "")
             new_note["Chapter Transcript"] = f"Which Bible chapter?<br><br>{note['Content']}"
+
             for field in new_note:
                 if field not in note:
                     raise Exception(f"Field '{field}' not in note {note['Reference']}")
