@@ -3,7 +3,7 @@ from pathlib import Path
 
 from anki.collection import Collection
 from anki.models import ChangeNotetypeRequest
-from anki.notes import Note
+from anki.notes import Note, NoteId
 
 
 def experimental_deck(col):
@@ -11,6 +11,37 @@ def experimental_deck(col):
     all_deck, = [c for c in root.children if c.name == "All"]
     experimental, = [c for c in all_deck.children if c.name == "Experimental"]
     return experimental
+
+
+class VerseNote:
+    def __init__(self, note: Note, col: Collection):
+        self.col = col
+        self.note = note
+
+    def primary_field(self):
+        return "Reference"
+
+    def edit(self):
+        note = self.note
+        new_note = dict()
+        new_note["Reference"] = note["Reference"].split("<br>")[0]
+        new_note["Content"] = note["Content"].split("<br>")[0]
+        if note["Reference"].endswith(".a"):
+            new_note["Continued"] = "&gt;"
+            next_note_reference = f"{note['Reference'][:-2]}.b"
+            next_note_searchstring = f'"Reference:{next_note_reference}"'
+            next_note_ids = self.col.find_notes(next_note_searchstring)
+            if len(next_note_ids) == 1:
+                next_note = self.col.get_note(next_note_ids[0])
+                new_note["Next"] = next_note["Content"]
+                new_note["Next Transcript"] = f"What's the next part?<br><br>{note['Content']}"
+            elif len(next_note_ids) == 0:
+                pass
+            else:
+                raise Exception(f"Found two notes with the same Reference: {note['Reference']}")
+        new_note["Content"] = note["Content"].replace(" &gt;", "")
+        new_note["Chapter Transcript"] = f"Which Bible chapter?<br><br>{note['Content']}"
+        return new_note
 
 
 class Facade:
@@ -60,40 +91,30 @@ class Facade:
             print(f"{k} -> {v}")
         self.col.update_note(sample_note)
 
+    def edit_note(self, anki_note: Note):
+        note_type = anki_note.note_type()["name"]
+        if note_type == "Verse":
+            note = VerseNote(anki_note, self.col)
+        else:
+            raise Exception(f"Unknown note type: {note_type}")
+        new_note = note.edit()
+        for field in new_note:
+            if field not in anki_note:
+                raise Exception(f"Field '{field}' not in note {note.primary_field()}")
+        print(f"Updating note {note.primary_field()}:")
+        for field in new_note:
+            if anki_note[field] != new_note[field]:
+                print(f"  Setting {field}:")
+                print(f"  - {anki_note[field]}")
+                print(f"  + {new_note[field]}")
+                anki_note[field] = new_note[field]
+        self.col.update_note(anki_note)
+
     def edit_all_notes(self):
         note_ids = self.col.find_notes("deck:Active::Theology_Temp")
         for note_id in note_ids:
             note = self.col.get_note(note_id)
-            new_note = dict()
-            new_note["Reference"] = note["Reference"].split("<br>")[0]
-            new_note["Content"] = note["Content"].split("<br>")[0]
-            if note["Reference"].endswith(".a"):
-                new_note["Continued"] = "&gt;"
-                next_note_reference = f"{note['Reference'][:-2]}.b"
-                next_note_searchstring = f'"Reference:{next_note_reference}"'
-                next_note_ids = self.col.find_notes(next_note_searchstring)
-                if len(next_note_ids) == 1:
-                    next_note = self.col.get_note(next_note_ids[0])
-                    new_note["Next"] = next_note["Content"]
-                    new_note["Next Transcript"] = f"What's the next part?<br><br>{note['Content']}"
-                elif len(next_note_ids) == 0:
-                    pass
-                else:
-                    raise Exception(f"Found two notes with the same Reference: {note['Reference']}")
-            new_note["Content"] = note["Content"].replace(" &gt;", "")
-            new_note["Chapter Transcript"] = f"Which Bible chapter?<br><br>{note['Content']}"
-
-            for field in new_note:
-                if field not in note:
-                    raise Exception(f"Field '{field}' not in note {note['Reference']}")
-            print(f"Updating note {note['Reference']}:")
-            for field in new_note:
-                if note[field] != new_note[field]:
-                    print(f"  Setting {field}:")
-                    print(f"  - {note[field]}")
-                    print(f"  + {new_note[field]}")
-                    note[field] = new_note[field]
-            self.col.update_note(note)
+            self.edit_note(note)
 
 
 if __name__ == '__main__':
