@@ -1,5 +1,6 @@
 import os
 from pathlib import Path
+from typing import Optional
 
 from anki.collection import Collection
 from anki.models import ChangeNotetypeRequest
@@ -18,8 +19,8 @@ class VerseNote:
         self.col = col
         self.note = note
 
-    def primary_field(self):
-        return "Reference"
+    def primary_value(self):
+        return self.note["Reference"]
 
     def edit(self):
         note = self.note
@@ -38,9 +39,49 @@ class VerseNote:
             elif len(next_note_ids) == 0:
                 pass
             else:
-                raise Exception(f"Found two notes with the same Reference: {note['Reference']}")
+                raise Exception(f"Found two notes with the same Reference: {next_note_reference}")
         new_note["Content"] = note["Content"].replace(" &gt;", "")
         new_note["Chapter Transcript"] = f"Which Bible chapter?<br><br>{note['Content']}"
+        return new_note
+
+
+class ChapterNote:
+    def __init__(self, note: Note, col: Collection):
+        self.col = col
+        self.note = note
+
+    def primary_value(self):
+        return self.note["Reference"]
+
+    def chapter_components(self):
+        name, number = self.note["Reference"].split(" ")
+        return name, number
+
+    def next_chapter_note(self) -> Optional['ChapterNote']:
+        this_name, this_number = self.chapter_components()
+        this_number = int(this_number)
+        next_note_reference = f"{this_name} {this_number + 1}"
+        next_note_searchstring = f'"Reference:{next_note_reference}"'
+        next_note_ids = self.col.find_notes(next_note_searchstring)
+        if len(next_note_ids) == 1:
+            next_note = self.col.get_note(next_note_ids[0])
+            return ChapterNote(next_note, self.col)
+        elif len(next_note_ids) == 0:
+            return None
+        else:
+            raise Exception(f"Found two notes with the same Reference: {next_note_reference}")
+
+    def edit(self):
+        note = self.note
+        new_note = dict()
+        if "<img" in note["Summary"]:
+            new_note["Picture"] = "<img" + note["Summary"].split("<img")[-1]
+        new_note["Reference"] = note["Reference"].split("<br>")[0]
+        new_note["Summary"] = note["Summary"].split("<br>")[0]
+        next_note = self.next_chapter_note()
+        if next_note is not None:
+            new_note["Next summary"] = next_note.note["Summary"]
+            new_note["Next picture"] = next_note.note["Picture"]
         return new_note
 
 
@@ -95,13 +136,15 @@ class Facade:
         note_type = anki_note.note_type()["name"]
         if note_type == "Verse":
             note = VerseNote(anki_note, self.col)
+        elif note_type == "Chapter":
+            note = ChapterNote(anki_note, self.col)
         else:
             raise Exception(f"Unknown note type: {note_type}")
         new_note = note.edit()
         for field in new_note:
             if field not in anki_note:
-                raise Exception(f"Field '{field}' not in note {note.primary_field()}")
-        print(f"Updating note {note.primary_field()}:")
+                raise Exception(f"Field '{field}' not in note {note.primary_value()}")
+        print(f"Processing {note_type} note: {note.primary_value()}")
         for field in new_note:
             if anki_note[field] != new_note[field]:
                 print(f"  Setting {field}:")
