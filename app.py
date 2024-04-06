@@ -38,13 +38,11 @@ class VerseNote:
             if len(next_note_ids) == 1:
                 next_note = self.col.get_note(next_note_ids[0])
                 new_note["Next"] = next_note["Content"]
-                new_note["Next Transcript"] = f"What's the next part?<br><br>{transcript}"
             elif len(next_note_ids) == 0:
                 pass
             else:
                 raise Exception(f"Found two notes with the same Reference: {next_note_reference}")
         new_note["Content"] = note["Content"].replace(" &gt;", "")
-        new_note["Chapter Transcript"] = f"Which Bible chapter?<br><br>{transcript}"
         return new_note
 
 
