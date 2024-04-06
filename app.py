@@ -29,6 +29,7 @@ class VerseNote:
         new_note["Content"] = note["Content"].split("<br>")[0]
         transcript = note['Content']
         transcript = transcript.replace("YHWH", "JEHOVAH")
+        new_note["Transcript"] = transcript
         if note["Reference"].endswith(".a"):
             new_note["Continued"] = "&gt;"
             next_note_reference = f"{note['Reference'][:-2]}.b"
