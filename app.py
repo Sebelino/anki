@@ -62,7 +62,10 @@ class ChapterNote:
 
     def next_chapter_note(self) -> Optional['ChapterNote']:
         this_name, this_number = self.chapter_components()
-        this_number = int(this_number)
+        try:
+            this_number = int(this_number)
+        except ValueError:
+            return None  # This would happen if you're converting legacy cards
         next_note_reference = f"{this_name} {this_number + 1}"
         next_note_searchstring = f'"Reference:{next_note_reference}"'
         next_note_ids = self.col.find_notes(next_note_searchstring)
