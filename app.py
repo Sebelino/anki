@@ -55,7 +55,7 @@ class ChapterNote:
         return self.note["Reference"]
 
     def chapter_components(self):
-        name, number = self.note["Reference"].split(" ")
+        name, number = self.note["Reference"].rsplit(" ", 1)
         return name, number
 
     def next_chapter_note(self) -> Optional['ChapterNote']:
