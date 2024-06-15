@@ -158,7 +158,7 @@ class Facade:
         self.col.update_note(anki_note)
 
     def edit_all_notes(self):
-        note_ids = self.col.find_notes("deck:Active::Theology_Temp")
+        note_ids = self.col.find_notes("deck:Active::Theology_Summary_Chapter_Fast")
         for note_id in note_ids:
             note = self.col.get_note(note_id)
             self.edit_note(note)
