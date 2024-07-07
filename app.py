@@ -1,4 +1,5 @@
 import os
+import re
 from pathlib import Path
 from typing import Optional
 
@@ -22,14 +23,20 @@ class VerseNote:
     def primary_value(self):
         return self.note["Reference"]
 
+    @classmethod
+    def transcript_from_content(cls, content: str):
+        transcript = content
+        transcript = transcript.replace("<br>", " ")
+        transcript = re.sub("<[^<]+>", "", transcript)
+        transcript = transcript.replace("YHWH", "JEHOVAH")
+        return transcript
+
     def edit(self):
         note = self.note
         new_note = dict()
         new_note["Reference"] = note["Reference"].split("<br>")[0]
         new_note["Content"] = note["Content"].split("<br>")[0]
-        transcript = note['Content']
-        transcript = transcript.replace("YHWH", "JEHOVAH")
-        new_note["Transcript"] = transcript
+        new_note["Transcript"] = self.transcript_from_content(note["Content"])
         if note["Reference"].endswith(".a"):
             new_note["Continued"] = "&gt;"
             next_note_reference = f"{note['Reference'][:-2]}.b"
