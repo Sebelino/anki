@@ -1,11 +1,14 @@
+import glob
+import hashlib
 import os
 import re
+import shutil
 from pathlib import Path
 from typing import Optional
 
 from anki.collection import Collection
 from anki.models import ChangeNotetypeRequest
-from anki.notes import Note, NoteId
+from anki.notes import Note
 
 
 def experimental_deck(col):
@@ -31,6 +34,22 @@ class VerseNote:
         transcript = transcript.replace("YHWH", "JEHOVAH")
         return transcript
 
+    def make_audio_file(self):
+        book, verse = self.note["Reference"].strip().rsplit(" ")
+        chapter_number, verse_number = verse.split(":")
+        dir_path = os.path.join("./audio", book, chapter_number, verse_number)
+        audio_paths = glob.glob(os.path.join(dir_path, "*.mp3"))
+        if not audio_paths:
+            return None
+        elif len(audio_paths) == 2:
+            raise Exception(f"Found two files: {audio_paths}")
+        audio_path, = audio_paths
+        media_dir = self.col.media.dir()
+        reference_hash = hashlib.md5(self.note["Reference"].strip().encode()).hexdigest()
+        target_path = os.path.join(media_dir, f"dupertts-{reference_hash}.mp3")
+        shutil.copyfile(audio_path, target_path)
+        return os.path.basename(target_path)
+
     def edit(self):
         note = self.note
         new_note = dict()
@@ -49,6 +68,9 @@ class VerseNote:
                 pass
             else:
                 raise Exception(f"Found two notes with the same Reference: {next_note_reference}")
+        audio_file = self.make_audio_file()
+        if audio_file:
+            new_note["Speech"] = f"[sound:{audio_file}]"
         return new_note
 
 
