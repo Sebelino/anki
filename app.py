@@ -35,7 +35,7 @@ class VerseNote:
         note = self.note
         new_note = dict()
         new_note["Reference"] = note["Reference"].split("<br>")[0]
-        new_note["Content"] = note["Content"].split("<br>")[0]
+        new_note["Content"] = note["Content"].replace(" &gt;", "")
         new_note["Transcript"] = self.transcript_from_content(note["Content"])
         if note["Reference"].endswith(".a"):
             new_note["Continued"] = "&gt;"
@@ -49,7 +49,6 @@ class VerseNote:
                 pass
             else:
                 raise Exception(f"Found two notes with the same Reference: {next_note_reference}")
-        new_note["Content"] = note["Content"].replace(" &gt;", "")
         return new_note
 
 
